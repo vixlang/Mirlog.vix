@@ -1,0 +1,225 @@
+extern "C"
+{
+    fn time(t: i64): i64
+    fn snprintf(buf: string, size: i64, fmt: string, ...): i32
+    fn malloc(size: i64): string
+}
+
+pub fn LV_INFO(): i32 { return 0 }
+pub fn LV_ACCESS(): i32 { return 1 }
+pub fn LV_WARN(): i32 { return 2 }
+pub fn LV_ERROR(): i32 { return 3 }
+pub fn LV_PANIC(): i32 { return 4 }
+
+pub fn MODE_CLEAR(): i32 { return 0 }
+pub fn MODE_TIME(): i32 { return 1 }
+pub fn MODE_NOCOLOR(): i32 { return 2 }
+pub fn MODE_COLORED(): i32 { return 3 }
+
+pub fn COL_BLACK(): i32 { return 0 }
+pub fn COL_GREEN(): i32 { return 1 }
+pub fn COL_BLUE(): i32 { return 2 }
+pub fn COL_MAGENTA(): i32 { return 3 }
+pub fn COL_CYAN(): i32 { return 4 }
+pub fn COL_RED(): i32 { return 5 }
+pub fn COL_WHITE(): i32 { return 6 }
+pub fn COL_YELLOW(): i32 { return 7 }
+pub fn COL_AUTO(): i32 { return 8 }
+
+pub fn STYLE_NONE(): i32 { return 0 }
+pub fn STYLE_BOLD(): i32 { return 1 }
+pub fn STYLE_DIM(): i32 { return 2 }
+pub fn STYLE_ITALIC(): i32 { return 3 }
+pub fn STYLE_UNDERLINE(): i32 { return 4 }
+pub fn STYLE_BLINK(): i32 { return 5 }
+pub fn STYLE_REVERSE(): i32 { return 7 }
+pub fn STYLE_HIDDEN(): i32 { return 8 }
+pub fn STYLE_STRIKETHROUGH(): i32 { return 9 }
+
+pub fn i32_to_str(n: i32): string
+{
+    let buf: string = malloc(64)
+    snprintf(buf, 64, "%d", n)
+    return buf
+}
+
+pub type ColoredString = struct
+{
+    text: string,
+    fg: i32,
+    bg: i32,
+    style: i32
+}
+
+pub fn lv_tag(lv: i32): string
+{
+    if (lv == 0) { return "[INFO]" }
+    if (lv == 1) { return "[ACCESS]" }
+    if (lv == 2) { return "[WARN]" }
+    if (lv == 3) { return "[ERROR]" }
+    if (lv == 4) { return "[PANIC]" }
+    return "[UNKNOWN]"
+}
+
+pub fn ansi_fg(col: i32): string
+{
+    if (col == 0) { return "\033[30m" }
+    if (col == 1) { return "\033[32m" }
+    if (col == 2) { return "\033[34m" }
+    if (col == 3) { return "\033[35m" }
+    if (col == 4) { return "\033[36m" }
+    if (col == 5) { return "\033[31m" }
+    if (col == 6) { return "\033[37m" }
+    if (col == 7) { return "\033[33m" }
+    return "\033[0m"
+}
+
+pub fn ansi_bg(col: i32): string
+{
+    if (col == 0) { return "\033[40m" }
+    if (col == 1) { return "\033[42m" }
+    if (col == 2) { return "\033[44m" }
+    if (col == 3) { return "\033[45m" }
+    if (col == 4) { return "\033[46m" }
+    if (col == 5) { return "\033[41m" }
+    if (col == 6) { return "\033[47m" }
+    if (col == 7) { return "\033[43m" }
+    return "\033[0m"
+}
+
+pub fn auto_col(lv: i32): i32
+{
+    if (lv == 0) { return 6 }
+    if (lv == 1) { return 1 }
+    if (lv == 2) { return 7 }
+    if (lv == 3) { return 5 }
+    if (lv == 4) { return 5 }
+    return 6
+}
+
+pub fn utcnow(): string
+{
+    let t = time(0)
+    let buf: string = malloc(32)
+    snprintf(buf, 32, "%ld", t)
+    return buf + " UTC"
+}
+
+pub fn mirprint(lv: i32, msg: string, mode: i32)
+{
+    let reset = "\033[0m"
+    if (mode == 0) { print(msg) }
+    elif (mode == 1) { print(utcnow() + " " + msg) }
+    elif (mode == 2) { print(utcnow() + " " + lv_tag(lv) + " " + msg) }
+    elif (mode == 3)
+    {
+        let c = auto_col(lv)
+        print(ansi_fg(c) + utcnow() + " " + lv_tag(lv) + " " + msg + reset)
+    }
+}
+
+pub fn colored_new(s: string): ColoredString
+{
+    return ColoredString{ text: s, fg: 8, bg: 8, style: 0 }
+}
+
+pub fn cs_fg(cs: &ColoredString, col: i32) { cs.fg = col }
+pub fn cs_bg(cs: &ColoredString, col: i32) { cs.bg = col }
+pub fn cs_style(cs: &ColoredString, s: i32) { cs.style = s }
+
+pub fn cs_black(cs: &ColoredString) { cs.fg = 0 }
+pub fn cs_green(cs: &ColoredString) { cs.fg = 1 }
+pub fn cs_blue(cs: &ColoredString) { cs.fg = 2 }
+pub fn cs_magenta(cs: &ColoredString) { cs.fg = 3 }
+pub fn cs_cyan(cs: &ColoredString) { cs.fg = 4 }
+pub fn cs_red(cs: &ColoredString) { cs.fg = 5 }
+pub fn cs_white(cs: &ColoredString) { cs.fg = 6 }
+pub fn cs_yellow(cs: &ColoredString) { cs.fg = 7 }
+
+pub fn cs_on_black(cs: &ColoredString) { cs.bg = 0 }
+pub fn cs_on_green(cs: &ColoredString) { cs.bg = 1 }
+pub fn cs_on_blue(cs: &ColoredString) { cs.bg = 2 }
+pub fn cs_on_magenta(cs: &ColoredString) { cs.bg = 3 }
+pub fn cs_on_cyan(cs: &ColoredString) { cs.bg = 4 }
+pub fn cs_on_red(cs: &ColoredString) { cs.bg = 5 }
+pub fn cs_on_white(cs: &ColoredString) { cs.bg = 6 }
+pub fn cs_on_yellow(cs: &ColoredString) { cs.bg = 7 }
+
+pub fn cs_bold(cs: &ColoredString) { cs.style = 1 }
+pub fn cs_dim(cs: &ColoredString) { cs.style = 2 }
+pub fn cs_italic(cs: &ColoredString) { cs.style = 3 }
+pub fn cs_underline(cs: &ColoredString) { cs.style = 4 }
+pub fn cs_blink(cs: &ColoredString) { cs.style = 5 }
+pub fn cs_reverse(cs: &ColoredString) { cs.style = 7 }
+pub fn cs_hidden(cs: &ColoredString) { cs.style = 8 }
+pub fn cs_strikethrough(cs: &ColoredString) { cs.style = 9 }
+
+pub fn cs_render(cs: &ColoredString): string
+{
+    let reset = "\033[0m"
+    let mut seq = "\033["
+    let mut first = 1
+
+    if (cs.fg != 8)
+    {
+        let mut code = ""
+        if (cs.fg == 0) { code = "30" }
+        elif (cs.fg == 1) { code = "32" }
+        elif (cs.fg == 2) { code = "34" }
+        elif (cs.fg == 3) { code = "35" }
+        elif (cs.fg == 4) { code = "36" }
+        elif (cs.fg == 5) { code = "31" }
+        elif (cs.fg == 6) { code = "37" }
+        elif (cs.fg == 7) { code = "33" }
+        seq = seq + code
+        first = 0
+    }
+
+    if (cs.bg != 8)
+    {
+        if (first == 0) { seq = seq + ";" }
+        let mut code = ""
+        if (cs.bg == 0) { code = "40" }
+        elif (cs.bg == 1) { code = "42" }
+        elif (cs.bg == 2) { code = "44" }
+        elif (cs.bg == 3) { code = "45" }
+        elif (cs.bg == 4) { code = "46" }
+        elif (cs.bg == 5) { code = "41" }
+        elif (cs.bg == 6) { code = "47" }
+        elif (cs.bg == 7) { code = "43" }
+        seq = seq + code
+        first = 0
+    }
+
+    if (cs.style > 0)
+    {
+        if (first == 0) { seq = seq + ";" }
+        seq = seq + i32_to_str(cs.style)
+        first = 0
+    }
+
+    seq = seq + "m"
+    seq = seq + cs.text + reset
+    return seq
+}
+
+pub fn cs_print(cs: &ColoredString)
+{
+    print(cs_render(cs))
+}
+
+fn main(): i32
+{
+    mirprint(LV_INFO(), "Hello from Vix!", MODE_COLORED())
+    mirprint(LV_ACCESS(), "Access granted", MODE_COLORED())
+    mirprint(LV_WARN(), "Disk space low", MODE_COLORED())
+    mirprint(LV_ERROR(), "Something broke", MODE_COLORED())
+    mirprint(LV_PANIC(), "Kernel panic!", MODE_COLORED())
+
+    let mut cs = colored_new("styled text")
+    cs_red(&cs)
+    cs_bold(&cs)
+    cs_print(&cs)
+
+    return 0
+}
